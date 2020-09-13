@@ -27,7 +27,7 @@ app.use(passport.session());
 
 mongoose.connect('mongodb+srv://Rishav:spNKHfxqUunHlunx@cluster0.192oi.mongodb.net/Users1?retryWrites=true&w=majority',{useNewUrlParser:true,useUnifiedTopology:true});
 const db = mongoose.connection;
-db.on('error',()=>{
+db.on('error',(error)=>{
     console.log(error);
 })
 db.once('open',()=>{
