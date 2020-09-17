@@ -21,6 +21,7 @@ app.use(passport.session());
 
 require('./config/strategy')();
 
+const homeRoute = require('./Routes/home');
 const registerRoute = require('./Routes/register');
 const loginRoute = require('./Routes/login');
 const profileRoute = require('./Routes/profile');
@@ -44,6 +45,7 @@ app.use('/login',loginRoute);
 app.use('/register',registerRoute);
 app.use('/profile',profileRoute);
 app.use('/verify',verifyRoute);
+app.use('/',homeRoute);
 
 const port = process.env.PORT || 3000;
 
