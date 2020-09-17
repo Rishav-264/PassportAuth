@@ -1,19 +1,14 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const ejs = require('ejs');
+const exphbs = require('express-handlebars');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bodyParser = require('body-parser');
 const passport = require('passport');
 const session = require('express-session');
-const saltRounds=10;
-const { ensureAuthenticated } = require('./config/auth');
-
+const Strategy = require('./config/strategy');
+const User = require('./models/user')
 const app = express();
 
-app.set('view engine',"ejs");
-
-app.use(express.static('public'));
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.urlencoded({extended:true}));
 
 app.use(session({
     secret: 'secret',
@@ -24,132 +19,34 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+require('./config/strategy')();
 
-mongoose.connect('mongodb+srv://Rishav:spNKHfxqUunHlunx@cluster0.192oi.mongodb.net/Users1?retryWrites=true&w=majority',{useNewUrlParser:true,useUnifiedTopology:true});
-const db = mongoose.connection;
-db.on('error',(error)=>{
-    console.log(error);
-})
-db.once('open',()=>{
-    console.log("DB connected");
-})
+const registerRoute = require('./Routes/register');
+const loginRoute = require('./Routes/login');
+const profileRoute = require('./Routes/profile');
+const verifyRoute = require('./Routes/verification');
+
+mongoose.connect("mongodb+srv://Rishav:4Bs9IDfya2rUScux@cluster0.192oi.mongodb.net/UsersAuth1?retryWrites=true&w=majority",{ useNewUrlParser: true, useUnifiedTopology:true},(error)=>{
+    if(error) console.log(error);
+    console.log(('Database Connected'));
+});
 
 mongoose.set('useNewUrlParser', true);
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 
-const userSchema = new mongoose.Schema({
-    email: String,
-    password: String,
-    isVerified:Boolean
-})
 
-const User = mongoose.model('User',userSchema)
+app.use(express.static('public'));
+app.engine('handlebars', exphbs({defaultLayout: 'main'}));
+app.set('view engine', 'handlebars');
 
-const Strategy = require('passport-local').Strategy;
+app.use('/login',loginRoute);
+app.use('/register',registerRoute);
+app.use('/profile',profileRoute);
+app.use('/verify',verifyRoute);
 
-passport.use(new Strategy(
-    {usernameField:"email"},
-    (username,password,done)=>{
-        User.findOne({email:username},(err,user)=>{
-            if(err){ return done(err) }
-            if(!user){
-                return done(null,false)
-            }
-            bcrypt.compare(password, user.password, function(err, result) {
-                if(!result){
-                    return done(null,false)
-                }
-                else{
-                    return done(null,user)
-                }
-            });
-        })
-    }
-))
+const port = process.env.PORT || 3000;
 
-passport.serializeUser(function(user, done) {
-    done(null, user.id);
-  });
-  
-passport.deserializeUser(function(id, done) {
-    User.findById(id, function(err, user) {
-      done(err, user);
-    });
-  });
-
-
-app.get('/', function (req, res) {
-  res.render('login',{
-      AuthError:"",
-      Success:"",
-      Display:"display:none",
-      Display1:"display:none"
-  });
-})
-
-app.get("/register",(req,res)=>{
-    res.render("signup",{
-        PasswordError:"",
-        Display:"display:none"
-    });
-})
-
-app.get("/profile",ensureAuthenticated,(req,res)=>{
-    res.render('profile')
-})
-
-app.get('/Info',ensureAuthenticated,(req,res)=>{
-    res.render('info')
-})
-
-app.post("/register",(req,res)=>{
-    const email = req.body.email;
-    const password = req.body.password;
-    const rpassword = req.body.rpassword;
-    if(password.length<9){
-        res.render('signup',{
-            PasswordError:"Password must be 8 characters long.",
-            Display:"display:block"
-        })
-    }
-    else if(rpassword!=password){
-        res.render('signup',{
-            PasswordError:"Passwords do not match.",
-            Display:"display:block"
-        })
-    }
-    else{
-        bcrypt.genSalt(saltRounds,(err,salt)=>{
-            bcrypt.hash(password,salt,(err,hash)=>{
-                const newUser = new User({
-                    email:email,
-                    password:hash,
-                    isVerified:false
-                })
-                newUser.save();
-                res.render('login',{
-                    AuthError:"",
-                    Success:"You are now registered.",
-                    Display:"display:none",
-                    Display1:"display:block"
-                })
-            })
-        })
-    }
-
-})
-
-app.post("/",passport.authenticate('local',{
-    successRedirect:"/profile",
-    failureRedirect:'/'
-}))
-
-app.post('/logout',(req,res)=>{
-    req.logout();
-    res.redirect('/');
-})
-
-app.listen(process.env.PORT || 3000,(req,res)=>{
-    console.log("Server Running...");
+app.listen(port,()=>{
+    console.log("Server Running");
 })

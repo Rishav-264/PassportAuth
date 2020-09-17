@@ -4,10 +4,8 @@ module.exports = {
             return next();
         }
         res.render('login',{
-            AuthError:"Please Log In.",
-            Success:"",
-            Display:"display:block",
-            Display1:"display:none"
+            display:'display:block',
+            message:'Please Log In.'
         });
     }
 }
